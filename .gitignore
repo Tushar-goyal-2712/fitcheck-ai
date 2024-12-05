@@ -1,0 +1,20 @@
+# Ignore the virtual environment
+ob_virtual/
+
+# Ignore specific files and directories in "obesity model"
+obesity\ model/datasets/
+obesity\ model/runs/
+obesity\ model/yolo11n.pt
+
+# General Python and Django ignores
+__pycache__/
+*.py[cod]
+*.sqlite3
+db.sqlite3
+
+# Logs
+*.log
+
+# Ignore system-specific files
+.DS_Store
+Thumbs.db

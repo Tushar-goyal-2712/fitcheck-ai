@@ -1,0 +1,5 @@
+train: /Users/tushargoyal/Documents/PROJECTS/ML PROJCTS/OBESITY/datasets/YOLO/train/images
+val: /Users/tushargoyal/Documents/PROJECTS/ML PROJCTS/OBESITY/datasets/YOLO/valid/images
+
+nc: 2
+names: ['fat_person', 'normal']

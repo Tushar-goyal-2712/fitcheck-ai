@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Capture</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f3f4f7;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        #heading {
+            text-align: center;
+            margin: 20px 0; /* Adds space around the heading */
+            font-family: 'Arial', sans-serif;
+        }
+
+        #heading div span {
+            display: block;
+        }
+
+        #heading div span:first-child {
+            font-size: 36px;
+            font-weight: bold;
+            color: #007bff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        #heading div span:last-child {
+            font-size: 24px;
+            font-weight: 300;
+            color: #555;
+            margin-top: 10px;
+        }
+
+        #container {
+            display: flex;
+            width: 100%;
+            max-width: 1400px;
+            padding: 20px;
+            justify-content: space-between;
+            box-sizing: border-box;
+        }
+
+        /* Left side: Video (live camera feed) */
+        #left-container {
+            flex: 1;
+            display: none;  /* Initially hide the left container */
+            justify-content: center;
+            align-items: center;
+            margin-right: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        #video {
+            width: 100%;
+            max-width: 700px;
+            height: auto;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 2px solid #007bff;
+        }
+
+        /* Left side: Image (captured photo) */
+        #photo {
+            width: 100%;
+            max-width: 700px;
+            height: auto;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 2px solid #007bff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+
+        /* Right side: Controls & Results */
+        #right-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #capture {
+            background-color: #28a745;
+        }
+
+        #capture-again, #send {
+            background-color: #ffc107;
+        }
+
+        #send {
+            background-color: #dc3545;
+        }
+
+        #send:hover, #capture-again:hover {
+            background-color: #c82333;
+        }
+
+        /* Full-Screen Loader */
+        #loader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #loader {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+        }
+
+        #upload {
+            display: none;
+        }
+
+        #upload-label {
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            background-color: #007bff;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
+            display: inline-block;
+            margin-top: 15px;
+        }
+
+        #upload-label:hover {
+            background-color: #0056b3;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Result Styles */
+        #result-container {
+            display: none;
+            margin-top: 20px;
+            padding: 30px;
+            background-color: #fff;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            max-width: 100%;
+            width: 50%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        #result-container h2 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .result-item {
+            margin-bottom: 10px;
+        }
+
+        .result-item p {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .result-item p.success {
+            color: #28a745;
+        }
+
+        .result-item p.warning {
+            color: #ffc107;
+        }
+
+        .result-item p.error {
+            color: #dc3545;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="heading">
+        <div>
+            <span style="font-size: 36px; font-weight: bold; color: #007bff;">Welcome to FitCheck</span>
+            <br>
+            <span style="font-size: 24px; font-weight: 300; color: #555;">
+                Your AI-powered companion for detecting and analyzing health insights.
+            </span>
+        </div>
+    </div>
+    
+    <div id="container">
+        <div id="left-container" style="display: none;">
+            <video id="video" autoplay playsinline style="display: none;"></video>
+            <img id="photo" alt="Captured or Uploaded Photo" style="display: none;">
+        </div>
+
+        <div id="right-container">
+            <div id="controls">
+                <button id="start-camera">Start Camera</button>
+                <button id="capture" style="display: none;">Capture Photo</button>
+                <button id="capture-again" style="display: none;">Retake</button>
+                <button id="send" style="display: none;">Send</button>
+                <input type="file" id="upload" accept="image/*" style="display: none;">
+                <label for="upload" id="upload-label">Upload from Gallery</label>
+                <button id="upload-from-gallery" style="display: none;">Choose File</button>
+            </div>            
+
+            <div id="loader-overlay">
+                <div id="loader"></div>
+            </div>
+
+            <div id="result-container">
+                <h2>Detection Result:</h2>
+                <div id="result-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const photo = document.getElementById('photo');
+        const canvas = document.createElement('canvas');
+        const startCameraButton = document.getElementById('start-camera');
+        const captureButton = document.getElementById('capture');
+        const captureAgainButton = document.getElementById('capture-again');
+        const sendButton = document.getElementById('send');
+        const uploadInput = document.getElementById('upload');
+        const uploadLabel = document.getElementById('upload-label');
+        const uploadFromGalleryButton = document.getElementById('upload-from-gallery');
+        const loaderOverlay = document.getElementById('loader-overlay');
+        const resultContainer = document.getElementById('result-container');
+        const resultMessageDiv = document.getElementById('result-message');
+
+        let stream = null;
+
+        function startCamera() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(mediaStream => {
+                    stream = mediaStream;
+                    video.srcObject = stream;
+                    video.style.display = 'block';
+                    document.getElementById('left-container').style.display = 'flex'; // Show the left container after starting the camera
+                    startCameraButton.style.display = 'none';
+                    uploadLabel.style.display = 'none'; // Hide upload button when camera is active
+                    uploadFromGalleryButton.style.display = 'none'; // Hide "Choose File" button when camera is active
+                    captureButton.style.display = 'inline-block';
+                })
+                .catch(error => {
+                    console.error("Error accessing camera: ", error);
+                });
+        }
+
+        function stopCamera() {
+            if (stream) {
+                const tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+                stream = null;
+            }
+            video.style.display = 'none';
+        }
+
+        startCameraButton.addEventListener('click', () => {
+            startCamera();
+            uploadLabel.style.display = 'none'; // Hide the upload button when camera is started
+        });
+
+        uploadLabel.addEventListener('click', () => {
+            startCameraButton.style.display = 'none'; // Hide start camera button when upload is selected
+            captureButton.style.display = 'none'; // Hide capture button when upload is selected
+            uploadInput.style.display = 'none'; // Show the file input when upload is selected
+            uploadLabel.style.display = 'none';
+            uploadFromGalleryButton.style.display = 'none'; // Show the "Choose File" button
+        });
+
+        uploadFromGalleryButton.addEventListener('click', () => {
+            uploadInput.click(); // Trigger the file input when the "Choose File" button is clicked
+        });
+
+        captureButton.addEventListener('click', () => {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL('image/png');
+            photo.setAttribute('src', dataUrl);
+            photo.style.display = 'block'; // Show the captured photo on the left side
+            document.getElementById('left-container').style.display = 'flex'; // Ensure the left container is visible
+            stopCamera();
+            captureButton.style.display = 'none';
+            captureAgainButton.style.display = 'inline-block';
+            sendButton.style.display = 'inline-block';
+        });
+
+        captureAgainButton.addEventListener('click', () => {
+            // Reset to initial state
+            resultContainer.style.display = 'none';
+            resultMessageDiv.innerHTML = '';
+            photo.style.display = 'none';
+            captureAgainButton.style.display = 'none';
+            sendButton.style.display = 'none';
+            startCameraButton.style.display = 'inline-block';
+            uploadLabel.style.display = 'inline-block';
+            document.getElementById('left-container').style.display = 'none'; // Hide left container again
+            uploadInput.style.display = 'none'; // Hide upload input
+            uploadFromGalleryButton.style.display = 'none'; // Hide "Choose File" button
+        });
+
+        uploadInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const maxSize = 10 * 1024 * 1024; // 10 MB
+                if (file.size > maxSize) {
+                    alert("File size exceeds the 10 MB limit. Please choose a smaller file.");
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    photo.setAttribute('src', e.target.result);
+                    photo.style.display = 'block';
+                    video.style.display = 'none';
+                    captureButton.style.display = 'none';
+                    captureAgainButton.style.display = 'inline-block';
+                    sendButton.style.display = 'inline-block';
+                    document.getElementById('left-container').style.display = 'flex'; // Show the left container
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        sendButton.addEventListener('click', () => {
+            const dataUrl = photo.getAttribute('src');
+            loaderOverlay.style.display = 'flex';
+            fetch('/check/upload-photo/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: dataUrl }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                loaderOverlay.style.display = 'none';
+                if (data.message) {
+                    resultMessageDiv.innerHTML = data.message;
+                    resultContainer.style.display = 'block';
+                    sendButton.style.display = 'none'; // Hide the "Send" button after showing the result
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                loaderOverlay.style.display = 'none';
+                alert('Error: ' + error);
+            });
+        });
+    </script>
+</body>
+</html>
